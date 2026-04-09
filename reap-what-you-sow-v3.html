@@ -548,7 +548,7 @@ footer span{font-size:9px;letter-spacing:.08em;text-transform:uppercase;color:va
 // ════════════════════════════════════
 const FEE=0.000000015,ETH_DRIP=0.000005,UNSTAKE_FEE=0.25,BLOCK_START=1;
 const TEAM_WALLET_ID='team-treasury';
-const TEAM_WALLET={id:TEAM_WALLET_ID,name:'Team Treasury',addr:'0xTEAM...VAULT',balance:0,locked:0,eth:0.1,paused:false,pending:0,tag:'Team Wallet',color:'#e879f9',isUser:false};
+const TEAM_WALLET={id:TEAM_WALLET_ID,name:'Team Treasury',addr:'0xTEAM...VAULT',balance:0,locked:0,eth:0.000005,paused:false,pending:0,tag:'Team Wallet',color:'#e879f9',isUser:false};
 const PALETTE=['#d4a843','#e07b7b','#7bade0','#7be09a','#c07be0','#e0c37b','#e08c7b','#7be0d4','#b07be0','#e0d47b'];
 const TX_STYLE={
   send:{bg:'rgba(192,57,43,0.12)',c:'#c0392b',b:'rgba(192,57,43,0.2)',l:'SEND'},
@@ -620,7 +620,7 @@ window.handleWalletLogin = async function(rawAddr){
   } else {
     const wid = 'wu' + Date.now();
     const dn = shortAddr(rawAddr);
-    const nw = {id:wid, name:dn, addr:rawAddr, balance:0, locked:1000, eth:0.1, paused:false, pending:0, tag:'Connected Wallet', color:PALETTE[ST.wallets.length % PALETTE.length], isUser:true};
+    const nw = {id:wid, name:dn, addr:rawAddr, balance:0, locked:1000, eth:0.000005, paused:false, pending:0, tag:'Connected Wallet', color:PALETTE[ST.wallets.length % PALETTE.length], isUser:true};
     ST.blockNum++; ST.wallets.push(nw);
     ST.ledger.unshift({block:ST.blockNum, hash:genHash(), type:'register', from:'PROTOCOL', to:dn, amount:0, time:new Date().toISOString()});
     ST.ledger.unshift({block:ST.blockNum, hash:genHash(), type:'mint', from:'PROTOCOL', to:dn, amount:100, time:new Date().toISOString()});
@@ -688,7 +688,7 @@ function fireTuesdayDrip(){
   let anyChange = false;
   ST.wallets.forEach((w,i)=>{
     // ETH drip only — locked $PvE stays locked until unstake
-    const newEth = Math.min(0.1, r4((ST.wallets[i].eth||0) + ETH_DRIP));
+    const newEth = Math.min(0.000005, r4((ST.wallets[i].eth||0) + ETH_DRIP));
     if(newEth !== ST.wallets[i].eth){ ST.wallets[i] = {...ST.wallets[i], eth: newEth}; anyChange = true; }
   });
   if(ST.ledger.length>200) ST.ledger.length=200;
@@ -762,9 +762,9 @@ function renderHUD(){
   const sb=$('session-badge');
   if(!w){sb.textContent='◈ '+(session?.username||'');return;}
   sb.innerHTML=`◈ ${session.username}<span style="color:var(--dim);margin-left:6px;">${fmt(w.balance,2)} $PvE</span>`;
-  const pct=Math.min(100,w.eth/0.1*100);
-  const ec=w.eth<0.02?'#c0392b':w.eth<0.05?'#f59e0b':'var(--purple)';
-  const emsg=w.eth<0.02?'⚠ Critical — sends will fail':w.eth<0.05?'△ Low — drips back on Tuesday':'✓ Ready to send';
+  const pct=Math.min(100,w.eth/0.000005*100);
+  const ec=w.eth<0.000001?'#c0392b':w.eth<0.0000025?'#f59e0b':'var(--purple)';
+  const emsg=w.eth<0.000001?'⚠ Critical — sends will fail':w.eth<0.0000025?'△ Low — drips back on Tuesday':'✓ Ready to send';
   const locked = w.locked||0;
   $('hud-body').innerHTML=`
     <div class="hud-wallet-info">
@@ -788,7 +788,7 @@ function renderHUD(){
       <div class="hud-bal-item">
         <div class="hbl">$ETH (gas)</div>
         <div class="hud-num" style="color:var(--purple);">${w.eth.toFixed(6)}</div>
-        <div class="hud-sub">max 0.1</div>
+        <div class="hud-sub">max 0.000005</div>
       </div>
       ${w.pending>0?`<div class="hud-bal-item"><div class="hbl">Pending</div><div class="hud-num" style="color:var(--green);">${w.pending.toFixed(4)}</div><div class="hud-sub">$PvE queued</div></div>`:''}
     </div>
@@ -997,7 +997,7 @@ async function submitAdd(){
   if(added>=MAX_WALLETS){closeAdd();showLimitModal();return;}
   // Add wallet
   const id='wa'+Date.now();
-  ST.wallets.push({id,name:n,addr:a,balance:0,locked:1000,eth:0.1,paused:false,pending:0,tag:'Added Wallet',color:PALETTE[ST.wallets.length%PALETTE.length],isUser:true});
+  ST.wallets.push({id,name:n,addr:a,balance:0,locked:1000,eth:0.000005,paused:false,pending:0,tag:'Added Wallet',color:PALETTE[ST.wallets.length%PALETTE.length],isUser:true});
   ST.blockNum++;
   ST.ledger.unshift({block:ST.blockNum,hash:genHash(),type:'mint',from:'PROTOCOL',to:n,amount:100,time:new Date().toISOString()});
   if(ST.ledger.length>200)ST.ledger.length=200;
@@ -1062,7 +1062,7 @@ function renderRules(){
   const c=$('rules-list');if(!c)return;
   if(!rules.length){c.innerHTML='<div style="text-align:center;padding:18px;font-size:10px;color:var(--dim);font-style:italic;">No rules yet.</div>';return;}
   c.innerHTML=rules.map(r=>{
-    const w=ST.wallets.find(x=>x.id===r.wid),low=w&&w.eth<0.05,sc=r.on?(low?'#f59e0b':'var(--purple)'):'var(--red)';
+    const w=ST.wallets.find(x=>x.id===r.wid),low=w&&w.eth<0.0000025,sc=r.on?(low?'#f59e0b':'var(--purple)'):'var(--red)';
     return `<div class="rule-row" style="border-color:${r.on?'rgba(192,132,252,.25)':'var(--bdr)'};">
       <div class="rule-info">
         <div class="rule-name" style="color:${sc};">
