@@ -659,12 +659,6 @@ function fmt(n, d=2) {
   return parseFloat(n).toLocaleString(undefined, { maximumFractionDigits: d });
 }
 
-function fmtEth(n) {
-  if (n == null || isNaN(n)) return '—';
-  // Use up to 9 significant decimal places, strip trailing zeros
-  return parseFloat(n).toPrecision(4).replace(/\.?0+$/, '') || '0';
-}
-
 function statBlock(label, val, cls='') {
   return `<div class="app-stat">
     <span class="app-stat-lbl">${label}</span>
@@ -689,7 +683,7 @@ async function loadDashboard(profile) {
 
   document.getElementById('total-xp').textContent    = fmt(arenaResult.xp, 0);
   document.getElementById('total-pve').textContent   = fmt(reapResult.pve, 2);
-  document.getElementById('total-eth').textContent   = fmtEth(reapResult.eth) + ' ETH';
+  document.getElementById('total-eth').textContent   = fmt(reapResult.eth, 4) + ' ETH';
   document.getElementById('total-trade').textContent = fmt(tradeResult.val) + ' PvE';
 }
 
@@ -745,7 +739,7 @@ async function loadReapStats(profile) {
       statBlock('Wallet', (profile.skin||'🧙') + ' ' + (wallet.name || name)) +
       statBlock('$PvE Balance', fmt(wallet.balance || 0), 'gold') +
       statBlock('$PvE Locked',  fmt(wallet.locked  || 0), 'gold') +
-      statBlock('$ETH Earned',  fmtEth(eth), 'green') +
+      statBlock('$ETH Earned',  fmt(eth, 4), 'green') +
       statBlock('Total Vol',    fmt(st.totalVol || 0, 2), 'gold') +
       statBlock('Rewards',      fmt(st.totalRewards || 0, 2));
     return { pve, eth };
@@ -758,26 +752,32 @@ async function loadReapStats(profile) {
 async function loadTradeStats(profile) {
   const panel = document.getElementById('panel-trade');
   try {
-    const tr = await window.storage.get('trade-save:' + profile.address, false);
-    if (!tr) {
+    const TT_FB = 'https://st-tournament-01-default-rtdb.firebaseio.com';
+    function ttKey(s){ return s.replace(/[^a-zA-Z0-9_-]/g,'_'); }
+    const username = profile.address.slice(0,6) + '_' + profile.address.slice(-4);
+    const userKey  = ttKey(username.toLowerCase());
+    const res = await fetch(`${TT_FB}/states/${userKey}.json`);
+    const d   = res.ok ? await res.json() : null;
+    if (!d || typeof d.wallet !== 'number') {
       panel.innerHTML = '<span class="app-stat-lbl" style="opacity:0.5;">No save found — play Trade Together first.</span>';
       return { val: 0 };
     }
-    const d       = JSON.parse(tr.value);
-    const cash    = d.wallet || 0;
-    const pos     = d.positions    || [];
-    const hist    = d.tradeHistory || [];
-    const wins    = hist.filter(t => t.pnl > 0).length;
-    const losses  = hist.filter(t => t.pnl <= 0 && hist.length).length;
-    const pnl     = hist.reduce((s, t) => s + (t.pnl || 0), 0);
+    const cash   = d.wallet || 0;
+    const pos    = d.positions    || [];
+    const hist   = d.tradeHistory || [];
+    const wins   = hist.filter(t => t.pnl > 0).length;
+    const losses = hist.filter(t => t.pnl <= 0).length;
+    const pnl    = d.totalPnl != null ? d.totalPnl : hist.reduce((s,t) => s+(t.pnl||0), 0);
+    const wealth = d.totalWealth || cash;
     panel.innerHTML =
-      statBlock('Cash',         fmt(cash) + ' PvE', 'blue') +
-      statBlock('Open Positions', pos.length, 'blue') +
-      statBlock('Total Trades', hist.length) +
+      statBlock('Cash',           fmt(cash)   + ' PvE', 'blue') +
+      statBlock('Total Wealth',   fmt(wealth) + ' PvE', 'blue') +
+      statBlock('Open Positions', pos.length,  'blue') +
+      statBlock('Total Trades',   hist.length) +
       statBlock('Wins',   wins,   'green') +
       statBlock('Losses', losses, 'red') +
-      statBlock('Total P&L', (pnl >= 0 ? '+' : '') + fmt(pnl) + ' PvE', pnl >= 0 ? 'green' : 'red');
-    return { val: cash };
+      statBlock('Total P&L', (pnl>=0?'+':'') + fmt(pnl) + ' PvE', pnl>=0?'green':'red');
+    return { val: wealth };
   } catch(e) {
     panel.innerHTML = '<span class="app-stat-lbl" style="opacity:0.5;">Could not load Trade data.</span>';
     return { val: 0 };
