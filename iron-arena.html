@@ -2334,12 +2334,6 @@ let currentEnemy = null;
 let actionLocked = false;
 
 function startFight() {
-  if (!shopState.walletAddress) {
-    addLog(`👛 <span style="color:var(--red2)">You must save a wallet address first! Go to XP Shop → Name tab.</span>`, 'system');
-    switchShopTab('name');
-    renderWalletDisplay();
-    return;
-  }
   const base = getEnemyForWave(state.wave);
   currentEnemy = scaleEnemy(base, state.wave);
   const maxHP = getPlayerMaxHP();
