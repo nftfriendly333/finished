@@ -329,11 +329,13 @@
   .card-small { border: 1px solid var(--border); border-radius: 20px; overflow: hidden; background: var(--card); opacity: 0; transition: border-color 0.3s, box-shadow 0.3s; }
   .card-small:nth-child(1) { animation: fadeUp 0.8s 0.9s ease forwards; }
   .card-small:nth-child(2) { animation: fadeUp 0.8s 1.05s ease forwards; }
+  .card-small:nth-child(3) { animation: fadeUp 0.8s 1.2s ease forwards; }
   .card-small .card-visual { min-height: 180px; }
   .card-small .card-content { padding: 30px; }
   .card-small .card-title { font-size: 1.45rem; }
   .card-small:nth-child(1):hover { border-color: rgba(200,169,110,0.25); box-shadow: 0 0 40px rgba(200,169,110,0.1); }
   .card-small:nth-child(2):hover { border-color: rgba(127,170,255,0.25); box-shadow: 0 0 40px var(--glow2); }
+  .card-small:nth-child(3):hover { border-color: rgba(92,184,92,0.25); box-shadow: 0 0 40px rgba(92,184,92,0.1); }
 
   /* ── FOOTER ── */
   footer { border-top: 1px solid var(--border); padding: 32px 20px; text-align: center; }
@@ -1800,6 +1802,46 @@ const WORKER_URL = 'https://pve-api.YOUR-WORKER-SUBDOMAIN.workers.dev';
       </div>
     </div>
 
+    <!-- DASHBOARD -->
+    <div class="card-small" style="grid-column: 1 / -1;">
+      <div class="card-visual" style="background:linear-gradient(135deg,#081a0d,#050d08);min-height:180px;position:relative;">
+        <div style="position:absolute;inset:0;background:radial-gradient(ellipse at 50% 50%,rgba(92,184,92,0.15) 0%,transparent 65%);"></div>
+        <div style="position:relative;z-index:2;display:flex;flex-direction:column;align-items:center;gap:14px;">
+          <div style="font-size:3.2rem;filter:drop-shadow(0 0 18px rgba(92,184,92,0.55));animation:float 6s ease-in-out infinite;">◈</div>
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;width:min(320px,90vw);">
+            <div style="background:rgba(92,184,92,0.07);border:1px solid rgba(92,184,92,0.2);border-radius:8px;padding:8px 6px;text-align:center;">
+              <div style="font-size:0.52rem;letter-spacing:0.15em;color:rgba(92,184,92,0.6);text-transform:uppercase;margin-bottom:4px;">$PvE</div>
+              <div id="db-pve-val" style="font-size:0.88rem;color:#5cb85c;font-family:'DM Mono',monospace;">—</div>
+            </div>
+            <div style="background:rgba(200,169,110,0.07);border:1px solid rgba(200,169,110,0.2);border-radius:8px;padding:8px 6px;text-align:center;">
+              <div style="font-size:0.52rem;letter-spacing:0.15em;color:rgba(200,169,110,0.6);text-transform:uppercase;margin-bottom:4px;">XP</div>
+              <div id="db-xp-val"  style="font-size:0.88rem;color:#c8a96e;font-family:'DM Mono',monospace;">—</div>
+            </div>
+            <div style="background:rgba(127,170,255,0.07);border:1px solid rgba(127,170,255,0.2);border-radius:8px;padding:8px 6px;text-align:center;">
+              <div style="font-size:0.52rem;letter-spacing:0.15em;color:rgba(127,170,255,0.6);text-transform:uppercase;margin-bottom:4px;">ETH</div>
+              <div id="db-eth-val" style="font-size:0.88rem;color:#7faaff;font-family:'DM Mono',monospace;">—</div>
+            </div>
+            <div style="background:rgba(212,168,255,0.07);border:1px solid rgba(212,168,255,0.2);border-radius:8px;padding:8px 6px;text-align:center;">
+              <div style="font-size:0.52rem;letter-spacing:0.15em;color:rgba(212,168,255,0.6);text-transform:uppercase;margin-bottom:4px;">P&L</div>
+              <div id="db-pnl-val" style="font-size:0.88rem;color:#d4a8ff;font-family:'DM Mono',monospace;">—</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="card-content">
+        <p class="card-number">OVERVIEW · ALL APPS</p>
+        <h2 class="card-title" style="color:#5cb85c;">Dashboard</h2>
+        <p class="card-desc">Your across-the-board snapshot — $PvE balance from Reap What You Sow, XP earned in Iron Arena, ETH holdings, and Trade Together portfolio P&amp;L.</p>
+        <div class="tags">
+          <span class="tag" style="color:#5cb85c;border-color:rgba(92,184,92,0.3);">$PvE Balance</span>
+          <span class="tag gold">XP</span>
+          <span class="tag blue">ETH</span>
+          <span class="tag" style="color:#d4a8ff;border-color:rgba(212,168,255,0.3);">Trade P&amp;L</span>
+        </div>
+        <a class="launch-btn" href="dashboard.html" style="border:1px solid rgba(92,184,92,0.45);background:rgba(92,184,92,0.08);color:#5cb85c;">◈ Open Dashboard</a>
+      </div>
+    </div>
+
   </div>
 </main>
 
@@ -2506,6 +2548,61 @@ window.PveStorage = PveStorage;
 
 (async () => {
   await PveAuth.init('home');
+})();
+// ─────────────────────────────────────────────
+// DASHBOARD CARD — populate stat tiles from localStorage
+// ─────────────────────────────────────────────
+(function() {
+  function fmtNum(n) {
+    if (n === null || n === undefined || isNaN(n)) return '—';
+    if (n >= 1e6) return (n/1e6).toFixed(2)+'M';
+    if (n >= 1e3) return (n/1e3).toFixed(1)+'K';
+    return Number(n).toLocaleString();
+  }
+  function fmtEth(n) {
+    if (n === null || n === undefined || isNaN(n)) return '—';
+    return parseFloat(n).toFixed(4);
+  }
+  function fmtPnl(n) {
+    if (n === null || n === undefined || isNaN(n)) return '—';
+    const v = parseFloat(n);
+    const el = document.getElementById('db-pnl-val');
+    if (el) el.style.color = v >= 0 ? '#5cb85c' : '#e06c6c';
+    return (v >= 0 ? '+' : '') + v.toFixed(0) + ' gp';
+  }
+
+  function loadStats() {
+    try {
+      // XP — Iron Arena stores profile under 'iron_arena_profile' or 'pve_profile'
+      let xp = null;
+      const arenaRaw = localStorage.getItem('iron_arena_profile') || localStorage.getItem('pve_profile');
+      if (arenaRaw) { const p = JSON.parse(arenaRaw); xp = p.xp ?? p.totalXp ?? null; }
+      document.getElementById('db-xp-val').textContent = fmtNum(xp);
+
+      // $PvE — Reap What You Sow stores wallet under 'pve_wallet' or 'rwys_wallet'
+      let pve = null;
+      const sowRaw = localStorage.getItem('pve_wallet') || localStorage.getItem('rwys_wallet');
+      if (sowRaw) { const w = JSON.parse(sowRaw); pve = w.pveBalance ?? w.balance ?? null; }
+      document.getElementById('db-pve-val').textContent = fmtNum(pve);
+
+      // ETH — same wallet object
+      let eth = null;
+      if (sowRaw) { const w = JSON.parse(sowRaw); eth = w.ethBalance ?? w.eth ?? null; }
+      document.getElementById('db-eth-val').textContent = eth !== null ? fmtEth(eth) : '—';
+
+      // Trade P&L — Trade Together stores positions/history under 'tt_portfolio' or 'trade_together_portfolio'
+      let pnl = null;
+      const tradeRaw = localStorage.getItem('tt_portfolio') || localStorage.getItem('trade_together_portfolio');
+      if (tradeRaw) { const t = JSON.parse(tradeRaw); pnl = t.totalPnl ?? t.pnl ?? null; }
+      document.getElementById('db-pnl-val').textContent = fmtPnl(pnl);
+    } catch(e) {}
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', loadStats);
+  } else {
+    loadStats();
+  }
 })();
 </script>
 </body>
