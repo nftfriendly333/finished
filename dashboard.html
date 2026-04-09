@@ -659,6 +659,12 @@ function fmt(n, d=2) {
   return parseFloat(n).toLocaleString(undefined, { maximumFractionDigits: d });
 }
 
+function fmtEth(n) {
+  if (n == null || isNaN(n)) return '—';
+  // Use up to 9 significant decimal places, strip trailing zeros
+  return parseFloat(n).toPrecision(4).replace(/\.?0+$/, '') || '0';
+}
+
 function statBlock(label, val, cls='') {
   return `<div class="app-stat">
     <span class="app-stat-lbl">${label}</span>
@@ -683,7 +689,7 @@ async function loadDashboard(profile) {
 
   document.getElementById('total-xp').textContent    = fmt(arenaResult.xp, 0);
   document.getElementById('total-pve').textContent   = fmt(reapResult.pve, 2);
-  document.getElementById('total-eth').textContent   = fmt(reapResult.eth, 4) + ' ETH';
+  document.getElementById('total-eth').textContent   = fmtEth(reapResult.eth) + ' ETH';
   document.getElementById('total-trade').textContent = fmt(tradeResult.val) + ' PvE';
 }
 
@@ -739,7 +745,7 @@ async function loadReapStats(profile) {
       statBlock('Wallet', (profile.skin||'🧙') + ' ' + (wallet.name || name)) +
       statBlock('$PvE Balance', fmt(wallet.balance || 0), 'gold') +
       statBlock('$PvE Locked',  fmt(wallet.locked  || 0), 'gold') +
-      statBlock('$ETH Earned',  fmt(eth, 4), 'green') +
+      statBlock('$ETH Earned',  fmtEth(eth), 'green') +
       statBlock('Total Vol',    fmt(st.totalVol || 0, 2), 'gold') +
       statBlock('Rewards',      fmt(st.totalRewards || 0, 2));
     return { pve, eth };
