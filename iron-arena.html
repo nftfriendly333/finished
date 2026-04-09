@@ -7,48 +7,40 @@
 <link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700;900&family=Cinzel:wght@400;600&family=IM+Fell+English:ital@0;1&display=swap" rel="stylesheet">
 <!-- Firebase SDK — initialized via Cloudflare Worker -->
 <script type="module">
-  // ═══════════════════════════════════════════════════════════════
-  // $PvE ECOSYSTEM — CLOUDFLARE WORKER URL
-  // ▼▼▼ REPLACE THIS URL WITH YOUR ACTUAL WORKER URL ▼▼▼
-  // Example: 'https://pve-api.myname.workers.dev'
-  // ═══════════════════════════════════════════════════════════════
-  const WORKER_URL = 'https://pve-api.YOUR-WORKER-SUBDOMAIN.workers.dev';
-  window.WORKER_URL = WORKER_URL;
+  import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+  import { getDatabase, ref, set, get, child, query, orderByKey, limitToFirst }
+    from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js';
 
   window._fbReady = false;
   window._fbDb    = null;
 
-  async function initFirebase() {
-    try {
-      // Fetch config from Cloudflare Worker (keeps API key off frontend)
-      let fbConfig = null;
-      if (!WORKER_URL.includes('YOUR-WORKER')) {
-        const res = await fetch(`${WORKER_URL}/api/firebase-config`);
-        if (res.ok) fbConfig = await res.json();
-      }
-      if (!fbConfig) {
-        console.warn('Firebase: Worker URL not set — leaderboard/guilds disabled.');
-        return;
-      }
-      const { initializeApp, getApps } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js');
-      const { getDatabase, ref, set, get, child, query, orderByKey, limitToFirst } =
-        await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js');
-      const app = getApps().length ? getApps()[0] : initializeApp(fbConfig);
-      window._fbDb    = getDatabase(app);
-      window._fbSet   = set;
-      window._fbRef   = ref;
-      window._fbGet   = get;
-      window._fbChild = child;
-      window._fbQuery = query;
-      window._fbOrderByKey = orderByKey;
-      window._fbLimitToFirst = limitToFirst;
-      window._fbReady = true;
-      console.log('Firebase connected ✓');
-    } catch(e) {
-      console.warn('Firebase init failed:', e);
-    }
+  const firebaseConfig = {
+    apiKey:            "AIzaSyAI3Pd07qv_w_YRfhhnsbSu-CXh4X-ZT9Q",
+    authDomain:        "live-leaderboard-aee95.firebaseapp.com",
+    projectId:         "live-leaderboard-aee95",
+    storageBucket:     "live-leaderboard-aee95.firebasestorage.app",
+    messagingSenderId: "316888776436",
+    appId:             "1:316888776436:web:6be767dfa0a80909cd68a1",
+    databaseURL:       "https://live-leaderboard-aee95-default-rtdb.firebaseio.com"
+  };
+
+  try {
+    const { getApps } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js');
+    const app = getApps().length ? getApps()[0] : initializeApp(firebaseConfig);
+    window._fbDb          = getDatabase(app);
+    window._fbSet         = set;
+    window._fbRef         = ref;
+    window._fbGet         = get;
+    window._fbChild       = child;
+    window._fbQuery       = query;
+    window._fbOrderByKey  = orderByKey;
+    window._fbLimitToFirst = limitToFirst;
+    window._fbReady       = true;
+    window.WORKER_URL     = null; // Worker not in use — direct config active
+    console.log('Firebase connected ✓');
+  } catch(e) {
+    console.warn('Firebase init failed:', e);
   }
-  initFirebase();
 </script>
 <style>
   :root {
@@ -3422,10 +3414,18 @@ const LB_MAX     = 100;            // max entries to store globally
 let   lbCurrentTab = 'lifetime';
 let   lbMyKey = null;              // this player's storage key
 
-// Derive a stable player key from hero name + browser fingerprint
+// Derive a stable player key — wallet address takes priority, fallback to random uid
 function getLbPlayerKey() {
   if (lbMyKey) return lbMyKey;
-  // Use hero name + a stored local UID
+  // If wallet is connected via PveAuth, use it as the key
+  const profile = (typeof PveAuth !== 'undefined') ? PveAuth.getProfile() : null;
+  const walletAddr = profile?.address || shopState.walletAddress || '';
+  if (walletAddr) {
+    lbMyKey = LB_PREFIX + walletAddr.toLowerCase();
+    localStorage.setItem('ironArena_uid', walletAddr.toLowerCase());
+    return lbMyKey;
+  }
+  // Fallback: stored uid (random, pre-wallet)
   let uid = localStorage.getItem('ironArena_uid');
   if (!uid) {
     uid = 'p_' + Math.random().toString(36).slice(2, 10);
